@@ -6,9 +6,40 @@ import random
 import time
 import pandas as pd
 
+# Personalizando el diseño con CSS
+st.markdown("""
+    <style>
+        .main {
+            background-color: #f0f8ff;
+            color: #333;
+        }
+        .sidebar .sidebar-content {
+            background-color: #ffcccb;
+        }
+        .stButton>button {
+            background-color: #4CAF50;
+            color: white;
+            border-radius: 12px;
+        }
+        h1 {
+            font-family: 'Comic Sans MS', sans-serif;
+            color: #2f4f4f;
+        }
+        h2 {
+            font-family: 'Arial', sans-serif;
+            color: #008b8b;
+        }
+    </style>
+""", unsafe_allow_html=True)
+
+# Encabezado atractivo
+st.markdown("""
+    <h1 style="text-align: center;">¡Bienvenido a la Super IA de Funciones Matemáticas! 🎉</h1>
+""", unsafe_allow_html=True)
+
+# Definición de funciones matemáticas
 x = sp.symbols('x')
 
-# Funciones matemáticas
 def derivar_funcion(expr):
     return sp.diff(expr, x)
 
@@ -59,6 +90,16 @@ def guardar_puntaje(nombre, puntaje):
         pass
     df.to_csv('puntajes.csv', index=False)
 
+def mostrar_ranking():
+    try:
+        df = pd.read_csv('puntajes.csv')
+        df_sorted = df.sort_values(by='Puntaje', ascending=False)
+        st.write("## Ranking de Estudiantes:")
+        st.write(df_sorted)
+    except FileNotFoundError:
+        st.write("Aún no hay puntajes guardados.")
+
+# Modo Examen
 def modo_examen():
     st.header("📝 Modo Examen")
     nombre = st.text_input("Tu nombre para guardar el puntaje:")
@@ -102,15 +143,14 @@ def modo_examen():
             guardar_puntaje(nombre, respuestas_correctas)
             st.success("🎉 Puntaje guardado exitosamente.")
 
-# App Principal
-st.title("🧠📈 Super IA de Funciones Matemáticas")
-
+# Menú Principal
 st.sidebar.title("Menú Principal")
 opcion = st.sidebar.selectbox("¿Qué quieres hacer?", 
-    ["Derivar", "Integrar", "Graficar", "Evaluar Respuesta", "Generar Función", "Resolver Ecuación", "Modo Examen", "Subir Imagen"])
+    ["Derivar", "Integrar", "Graficar", "Evaluar Respuesta", "Generar Función", 
+     "Resolver Ecuación", "Modo Examen", "Subir Imagen", "Ranking de Estudiantes"])
 
 # Funciones principales
-if opcion in ["Derivar", "Integrar", "Graficar", "Evaluar Respuesta", "Resolver Ecuación"]:
+if opcion == "Derivar" or opcion == "Integrar" or opcion == "Graficar" or opcion == "Evaluar Respuesta" or opcion == "Resolver Ecuación":
     funcion_usuario = st.text_input("Ingresa una función de x o ecuación (ej: x**2 + 3*x + 2 o x**2-4)", "x**2 + 3*x + 2")
     if funcion_usuario:
         expr = sp.sympify(funcion_usuario)
@@ -179,3 +219,5 @@ elif opcion == "Subir Imagen":
         st.image(archivo, caption="Imagen subida")
         st.info("🚀 En el futuro podríamos aplicar OCR para leer la función automáticamente.")
 
+elif opcion == "Ranking de Estudiantes":
+    mostrar_ranking()
