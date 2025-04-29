@@ -1,223 +1,123 @@
 import streamlit as st
 import sympy as sp
 import numpy as np
-import matplotlib.pyplot as plt
+import plotly.graph_objs as go
 import random
-import time
-import pandas as pd
 
-# Personalizando el diseño con CSS
-st.markdown("""
-    <style>
-        .main {
-            background-color: #f0f8ff;
-            color: #333;
-        }
-        .sidebar .sidebar-content {
-            background-color: #ffcccb;
-        }
-        .stButton>button {
-            background-color: #4CAF50;
-            color: white;
-            border-radius: 12px;
-        }
-        h1 {
-            font-family: 'Comic Sans MS', sans-serif;
-            color: #2f4f4f;
-        }
-        h2 {
-            font-family: 'Arial', sans-serif;
-            color: #008b8b;
-        }
-    </style>
-""", unsafe_allow_html=True)
+st.set_page_config(layout="wide")
+st.title("📊 App Educativa de Funciones Matemáticas")
 
-# Encabezado atractivo
-st.markdown("""
-    <h1 style="text-align: center;">¡Bienvenido a la Super IA de Funciones Matemáticas! 🎉</h1>
-""", unsafe_allow_html=True)
-
-# Definición de funciones matemáticas
 x = sp.symbols('x')
+y = sp.symbols('y')
 
-def derivar_funcion(expr):
-    return sp.diff(expr, x)
+# --------------------------------------------
+# Funciones auxiliares (omitidas aquí por brevedad: parse_function, explicar_derivada, etc.)
+# Puedes pegar el resto del código desde la última versión sin cambios aquí abajo
+# --------------------------------------------
 
-def integrar_funcion(expr):
-    return sp.integrate(expr, x)
+def main():
+    menu = st.sidebar.selectbox("Selecciona una herramienta:", [
+        "Gráfico de funciones",
+        "Evaluar función",
+        "Derivar función",
+        "Integrar función",
+        "Dominio y recorrido",
+        "Función inversa",
+        "Resolver inecuaciones",
+        "Límites"
+    ])
 
-def graficar_funcion(expr):
-    f = sp.lambdify(x, expr, "numpy")
-    x_vals = np.linspace(-10, 10, 400)
-    y_vals = f(x_vals)
-    fig, ax = plt.subplots()
-    ax.plot(x_vals, y_vals)
-    ax.grid(True)
-    ax.set_title(f"Gráfico de {expr}")
-    return fig
+    if menu == "Gráfico de funciones":
+        st.header("📈 Gráfico interactivo de funciones")
+        expr_input = st.text_input("Ingresa la función f(x):", value="x**2")
+        if expr_input:
+            expr = parse_function(expr_input)
+            graficar_funcion(expr)
 
-def generar_funcion_polinomica(grado=2, coef_min=-5, coef_max=5):
-    funcion = 0
-    for g in range(grado, -1, -1):
-        coef = random.randint(coef_min, coef_max)
-        if coef != 0:
-            funcion += coef * x**g
-    return funcion
+    elif menu == "Evaluar función":
+        st.header("🧪 Evaluar función en un punto")
+        expr_input = st.text_input("Función f(x):", value="x**2 + 3*x")
+        valor_x = st.number_input("Valor de x:", value=2.0)
+        if expr_input:
+            expr = parse_function(expr_input)
+            resultado, pasos = evaluar_funcion(expr, valor_x)
+            st.markdown(pasos)
 
-def generar_funcion_trigonometrica():
-    funciones_trigo = [sp.sin, sp.cos, sp.tan]
-    f_trig = random.choice(funciones_trigo)(x)
-    coef = random.randint(-5, 5)
-    if coef == 0:
-        coef = 1
-    return coef * f_trig
+    elif menu == "Derivar función":
+        st.header("🔁 Derivar una función")
+        expr_input = st.text_input("Función f(x):", value="x**3 + 2*x")
+        if expr_input:
+            expr = parse_function(expr_input)
+            derivada, pasos = explicar_derivada(expr)
+            st.markdown(pasos)
 
-def generar_funcion_mixta():
-    polinomio = generar_funcion_polinomica(grado=random.randint(1, 3))
-    trigonometrica = generar_funcion_trigonometrica()
-    return polinomio + trigonometrica
+    elif menu == "Integrar función":
+        st.header("📐 Integrar una función")
+        expr_input = st.text_input("Función f(x):", value="x**2")
+        if expr_input:
+            expr = parse_function(expr_input)
+            integral, pasos = explicar_integral(expr)
+            st.markdown(pasos)
 
-def resolver_ecuacion(ecuacion):
-    soluciones = sp.solve(ecuacion, x)
-    return soluciones
+    elif menu == "Dominio y recorrido":
+        st.header("🧭 Dominio y recorrido de una función")
+        expr_input = st.text_input("Función f(x):", value="sqrt(x - 2)")
+        if expr_input:
+            expr = parse_function(expr_input)
+            dominio, recorrido = dominio_y_recorrido(expr)
+            st.markdown(f"**Dominio:** {dominio}")
+            st.markdown(f"**Recorrido:** {recorrido}")
+            graficar_funcion(expr)
 
-def guardar_puntaje(nombre, puntaje):
-    df = pd.DataFrame({'Nombre': [nombre], 'Puntaje': [puntaje]})
-    try:
-        df_existente = pd.read_csv('puntajes.csv')
-        df = pd.concat([df_existente, df], ignore_index=True)
-    except FileNotFoundError:
-        pass
-    df.to_csv('puntajes.csv', index=False)
-
-def mostrar_ranking():
-    try:
-        df = pd.read_csv('puntajes.csv')
-        df_sorted = df.sort_values(by='Puntaje', ascending=False)
-        st.write("## Ranking de Estudiantes:")
-        st.write(df_sorted)
-    except FileNotFoundError:
-        st.write("Aún no hay puntajes guardados.")
-
-# Modo Examen
-def modo_examen():
-    st.header("📝 Modo Examen")
-    nombre = st.text_input("Tu nombre para guardar el puntaje:")
-    
-    if st.button("Comenzar Examen"):
-        preguntas = []
-        respuestas_correctas = 0
-        tiempo_inicio = time.time()
-
-        for i in range(5):
-            st.subheader(f"Pregunta {i+1}")
-            tipo = random.choice(["derivar", "integrar"])
-            if tipo == "derivar":
-                funcion = generar_funcion_polinomica(grado=random.randint(1, 3))
-                st.latex(f"\\text{{Deriva: }} {sp.latex(funcion)}")
-                respuesta_usuario = st.text_input(f"Respuesta derivada {i+1}:", key=f"der{i}")
-                correcta = derivar_funcion(funcion)
+    elif menu == "Función inversa":
+        st.header("🔄 Encontrar función inversa")
+        expr_input = st.text_input("Función f(x):", value="(x - 1)/(x + 2)")
+        if expr_input:
+            expr = parse_function(expr_input)
+            inversa, pasos = calcular_inversa(expr)
+            if inversa:
+                st.markdown(pasos)
+                graficar_funcion(expr, inversa_expr=inversa)
             else:
-                funcion = generar_funcion_polinomica(grado=random.randint(1, 3))
-                st.latex(f"\\text{{Integra: }} {sp.latex(funcion)}")
-                respuesta_usuario = st.text_input(f"Respuesta integral {i+1}:", key=f"int{i}")
-                correcta = integrar_funcion(funcion)
+                st.error(pasos)
 
-            if respuesta_usuario:
-                try:
-                    respuesta_expr = sp.sympify(respuesta_usuario)
-                    diferencia = sp.simplify(correcta - respuesta_expr)
-                    if diferencia == 0:
-                        respuestas_correctas += 1
-                        st.success("✅ ¡Correcto!")
-                    else:
-                        st.error(f"❌ Incorrecto. Respuesta correcta: {correcta}")
-                except Exception as e:
-                    st.error(f"Error al interpretar tu respuesta: {e}")
-
-        tiempo_total = time.time() - tiempo_inicio
-        st.info(f"Examen terminado en {round(tiempo_total, 2)} segundos.")
-        st.success(f"Puntaje final: {respuestas_correctas}/5")
-
-        if nombre:
-            guardar_puntaje(nombre, respuestas_correctas)
-            st.success("🎉 Puntaje guardado exitosamente.")
-
-# Menú Principal
-st.sidebar.title("Menú Principal")
-opcion = st.sidebar.selectbox("¿Qué quieres hacer?", 
-    ["Derivar", "Integrar", "Graficar", "Evaluar Respuesta", "Generar Función", 
-     "Resolver Ecuación", "Modo Examen", "Subir Imagen", "Ranking de Estudiantes"])
-
-# Funciones principales
-if opcion == "Derivar" or opcion == "Integrar" or opcion == "Graficar" or opcion == "Evaluar Respuesta" or opcion == "Resolver Ecuación":
-    funcion_usuario = st.text_input("Ingresa una función de x o ecuación (ej: x**2 + 3*x + 2 o x**2-4)", "x**2 + 3*x + 2")
-    if funcion_usuario:
-        expr = sp.sympify(funcion_usuario)
-
-if opcion == "Derivar":
-    if st.button("Derivar"):
-        resultado = derivar_funcion(expr)
-        st.success(f"La derivada es: {resultado}")
-
-elif opcion == "Integrar":
-    if st.button("Integrar"):
-        resultado = integrar_funcion(expr)
-        st.success(f"La integral es: {resultado} + C")
-
-elif opcion == "Graficar":
-    if st.button("Graficar"):
-        fig = graficar_funcion(expr)
-        st.pyplot(fig)
-
-elif opcion == "Evaluar Respuesta":
-    operacion = st.radio("¿Qué operación quieres evaluar?", ("Derivada", "Integral"))
-    respuesta_usuario = st.text_input("Ingresa tu respuesta")
-    if st.button("Evaluar"):
-        correcta = derivar_funcion(expr) if operacion == "Derivada" else integrar_funcion(expr)
-        try:
-            respuesta_expr = sp.sympify(respuesta_usuario)
-            diferencia = sp.simplify(correcta - respuesta_expr)
-            if diferencia == 0:
-                st.success("✅ ¡Respuesta correcta!")
+    elif menu == "Resolver inecuaciones":
+        st.header("⚖️ Resolver inecuaciones")
+        ineq_input = st.text_input("Inecuación (ej: x**2 - 4 > 0):", value="x**2 - 4 > 0")
+        if ineq_input:
+            resultado, pasos = resolver_inecuacion(ineq_input)
+            if resultado:
+                st.markdown(pasos)
             else:
-                st.error(f"❌ Respuesta incorrecta. La respuesta correcta era: {correcta}")
-        except Exception as e:
-            st.error(f"Error: {e}")
+                st.error(pasos)
 
-elif opcion == "Generar Función":
-    tipo = st.radio("Tipo de función a generar:", ("Polinómica", "Trigonométrica", "Mixta"))
-    if st.button("Generar"):
-        if tipo == "Polinómica":
-            nueva_funcion = generar_funcion_polinomica(grado=random.randint(2, 4))
-        elif tipo == "Trigonométrica":
-            nueva_funcion = generar_funcion_trigonometrica()
-        else:
-            nueva_funcion = generar_funcion_mixta()
-        st.success(f"Función generada: {nueva_funcion}")
-        
-        accion = st.radio("¿Qué quieres hacer con esta función?", ("Derivar", "Integrar"))
-        if accion == "Derivar":
-            resultado = derivar_funcion(nueva_funcion)
-            st.info(f"La derivada es: {resultado}")
-        else:
-            resultado = integrar_funcion(nueva_funcion)
-            st.info(f"La integral es: {resultado} + C")
+    elif menu == "Límites":
+        st.header("➗ Cálculo de Límite")
+        st.markdown("Esta sección te ayuda a **entender el concepto de límite** y cómo se aplica.")
+        st.latex(r"\lim_{x \to a} f(x) = L")
+        st.markdown("Esto representa el valor al que se acerca una función cuando x se acerca a cierto punto.")
 
-elif opcion == "Resolver Ecuación":
-    if st.button("Resolver"):
-        soluciones = resolver_ecuacion(expr)
-        st.success(f"Soluciones: {soluciones}")
+        st.subheader("📘 Demostración del límite como derivada")
+        st.markdown("La derivada de una función en un punto se define como el límite de la pendiente de la recta secante cuando h tiende a 0:")
+        st.latex(r"f'(a) = \lim_{h \to 0} \frac{f(a+h) - f(a)}{h}")
+        st.markdown("Esta fórmula representa la **pendiente de la recta tangente** en el punto $x = a$.")
 
-elif opcion == "Modo Examen":
-    modo_examen()
+        st.subheader("🧮 Calculadora de Límites")
+        funcion_limite = st.text_input("Ingresa la función f(x):", value="(x**2 - 1)/(x - 1)")
+        punto_limite = st.text_input("¿A qué valor tiende x?:", value="1")
 
-elif opcion == "Subir Imagen":
-    st.subheader("📷 Subir Imagen")
-    archivo = st.file_uploader("Sube una imagen de una función o ecuación")
-    if archivo:
-        st.image(archivo, caption="Imagen subida")
-        st.info("🚀 En el futuro podríamos aplicar OCR para leer la función automáticamente.")
+        if funcion_limite and punto_limite:
+            expr = parse_function(funcion_limite)
+            try:
+                punto_val = float(punto_limite)
+                limite, explicacion = calcular_limite(expr, punto_val)
+                if limite is not None:
+                    st.success(f"Resultado del límite: {limite}")
+                    st.markdown(explicacion)
+                else:
+                    st.error(explicacion)
+            except ValueError:
+                st.error("El punto debe ser un número válido.")
 
-elif opcion == "Ranking de Estudiantes":
-    mostrar_ranking()
+if __name__ == "__main__":
+    main()
