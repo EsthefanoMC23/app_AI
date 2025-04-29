@@ -16,7 +16,7 @@ def parse_function(expr_input):
     except Exception as e:
         return None  # Retorna None si ocurre un error
 
-# Función para graficar una función
+# Función para graficar una función con raíces, extremos e intersección
 def graficar_funcion(expr, inversa_expr=None):
     f = sp.lambdify(x, expr, modules=["numpy"])
     xs = np.linspace(-10, 10, 1000)
@@ -24,23 +24,99 @@ def graficar_funcion(expr, inversa_expr=None):
 
     try:
         ys = f(xs)
-        fig.add_trace(go.Scatter(x=xs, y=ys, mode='lines', name='f(x)', line=dict(color='blue')))
-    except:
+        fig.add_trace(go.Scatter(
+            x=xs, 
+            y=ys, 
+            mode='lines', 
+            name='f(x)', 
+            line=dict(color='blue'),
+            hovertemplate="x: %{x}<br>y: %{y}<extra></extra>"
+        ))
+    except Exception as e:
         st.error("❌ No se pudo graficar f(x).")
+        return
 
+    # Graficar inversa si existe
     if inversa_expr:
-        inv = sp.lambdify(x, inversa_expr, modules=["numpy"])
         try:
+            inv = sp.lambdify(x, inversa_expr, modules=["numpy"])
             ys_inv = inv(xs)
-            fig.add_trace(go.Scatter(x=ys_inv, y=xs, mode='lines', name='f⁻¹(x)', line=dict(color='red', dash='dash')))
-        except:
+            fig.add_trace(go.Scatter(
+                x=ys_inv, 
+                y=xs, 
+                mode='lines', 
+                name='f⁻¹(x)', 
+                line=dict(color='red', dash='dash'),
+                hovertemplate="x: %{x}<br>y: %{y}<extra></extra>"
+            ))
+        except Exception as e:
             st.error("❌ No se pudo graficar la inversa.")
 
-    fig.update_layout(title='Gráfico interactivo',
-                      xaxis_title='x', yaxis_title='y',
-                      hovermode='closest')
+    # Identificar y marcar RAÍCES (cuando f(x) = 0)
+    try:
+        raices = sp.solve(expr, x)
+        raices_reales = [r.evalf() for r in raices if r.is_real]
+        for r in raices_reales:
+            y_val = 0
+            fig.add_trace(go.Scatter(
+                x=[float(r)], 
+                y=[y_val], 
+                mode='markers', 
+                name='Raíz', 
+                marker=dict(color='green', size=10, symbol='x'),
+                hovertemplate="🔵 Tipo: Raíz<br>x: %{x:.2f}<br>y: %{y:.2f}<extra></extra>"
+            ))
+    except Exception as e:
+        pass  # Mejor no interrumpir todo el gráfico si falla
+
+    # Identificar y marcar EXTREMOS (cuando f'(x) = 0)
+    try:
+        derivada = sp.diff(expr, x)
+        criticos = sp.solve(derivada, x)
+        criticos_reales = [c.evalf() for c in criticos if c.is_real]
+        for c in criticos_reales:
+            try:
+                y_val = f(float(c))
+                fig.add_trace(go.Scatter(
+                    x=[float(c)], 
+                    y=[y_val], 
+                    mode='markers', 
+                    name='Extremo relativo', 
+                    marker=dict(color='orange', size=10, symbol='diamond'),
+                    hovertemplate="🟠 Tipo: Extremo relativo<br>x: %{x:.2f}<br>y: %{y:.2f}<extra></extra>"
+                ))
+            except Exception:
+                continue
+    except Exception as e:
+        pass
+
+    # Marcar intersección con eje Y (cuando x = 0)
+    try:
+        y_intersect = f(0)
+        if np.isfinite(y_intersect):
+            fig.add_trace(go.Scatter(
+                x=[0], 
+                y=[y_intersect], 
+                mode='markers', 
+                name='Intersección eje Y', 
+                marker=dict(color='black', size=10, symbol='circle'),
+                hovertemplate="⚫ Tipo: Intersección eje Y<br>x: %{x:.2f}<br>y: %{y:.2f}<extra></extra>"
+            ))
+    except Exception as e:
+        pass
+
+    # Opcional: Configurar mejor el layout
+    fig.update_layout(
+        title='Gráfico interactivo de la función',
+        xaxis_title='x',
+        yaxis_title='y',
+        hovermode='closest',
+        legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="right", x=1)
+    )
+
     fig.update_xaxes(rangeslider_visible=True)
     fig.update_yaxes(rangeslider_visible=True)
+
     st.plotly_chart(fig, use_container_width=True)
 
 # Función para evaluar una función en un punto
