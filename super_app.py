@@ -2,18 +2,114 @@ import streamlit as st
 import sympy as sp
 import numpy as np
 import plotly.graph_objs as go
-import random
 
 st.set_page_config(layout="wide")
 st.title("📊 App Educativa de Funciones Matemáticas")
 
 x = sp.symbols('x')
-y = sp.symbols('y')
 
-# --------------------------------------------
-# Funciones auxiliares (omitidas aquí por brevedad: parse_function, explicar_derivada, etc.)
-# Puedes pegar el resto del código desde la última versión sin cambios aquí abajo
-# --------------------------------------------
+# Función para convertir el texto ingresado en una expresión de SymPy
+def parse_function(expr_input):
+    try:
+        expr = sp.sympify(expr_input)
+        return expr
+    except Exception as e:
+        return None  # Retorna None si ocurre un error
+
+# Función para graficar una función
+def graficar_funcion(expr, inversa_expr=None):
+    f = sp.lambdify(x, expr, modules=["numpy"])
+    xs = np.linspace(-10, 10, 1000)
+    fig = go.Figure()
+
+    try:
+        ys = f(xs)
+        fig.add_trace(go.Scatter(x=xs, y=ys, mode='lines', name='f(x)', line=dict(color='blue')))
+    except:
+        st.error("❌ No se pudo graficar f(x).")
+
+    if inversa_expr:
+        inv = sp.lambdify(x, inversa_expr, modules=["numpy"])
+        try:
+            ys_inv = inv(xs)
+            fig.add_trace(go.Scatter(x=ys_inv, y=xs, mode='lines', name='f⁻¹(x)', line=dict(color='red', dash='dash')))
+        except:
+            st.error("❌ No se pudo graficar la inversa.")
+
+    fig.update_layout(title='Gráfico interactivo',
+                      xaxis_title='x', yaxis_title='y',
+                      hovermode='closest')
+    fig.update_xaxes(rangeslider_visible=True)
+    fig.update_yaxes(rangeslider_visible=True)
+    st.plotly_chart(fig, use_container_width=True)
+
+# Función para evaluar una función en un punto
+def evaluar_funcion(expr, valor_x):
+    try:
+        resultado = expr.subs(x, valor_x)
+        pasos = f"**Paso 1:** Sustituir x = {valor_x} en f(x): {expr} = {resultado}"
+        return resultado, pasos
+    except:
+        return None, "Error al evaluar la función."
+
+# Función para derivar una función
+def explicar_derivada(expr):
+    try:
+        derivada = sp.diff(expr, x)
+        pasos = f"**Paso 1:** Derivamos la función f(x) = {expr} respecto a x. Resultado: f'(x) = {derivada}"
+        return derivada, pasos
+    except:
+        return None, "Error al derivar la función."
+
+# Función para integrar una función
+def explicar_integral(expr):
+    try:
+        integral = sp.integrate(expr, x)
+        pasos = f"**Paso 1:** Integramos la función f(x) = {expr} respecto a x. Resultado: ∫f(x)dx = {integral}"
+        return integral, pasos
+    except:
+        return None, "Error al integrar la función."
+
+# Función para encontrar dominio y recorrido de una función
+def dominio_y_recorrido(expr):
+    try:
+        dominio = sp.solveset(sp.And(expr >= 0, x >= 0), x)
+        recorrido = sp.Range(-10, 10)  # Solo un ejemplo simple, puedes mejorarlo.
+        return dominio, recorrido
+    except:
+        return None, "Error al calcular el dominio y recorrido."
+
+# Función para encontrar la función inversa
+def calcular_inversa(expr):
+    try:
+        inversa = sp.solve(expr - y, x)
+        if inversa:
+            inversa_expr = inversa[0]
+            pasos = f"**Paso 1:** Encontramos la función inversa de f(x) = {expr}. Resultado: f⁻¹(x) = {inversa_expr}"
+            return inversa_expr, pasos
+        else:
+            return None, "No se pudo encontrar la inversa."
+    except:
+        return None, "Error al calcular la inversa."
+
+# Función para resolver inecuaciones
+def resolver_inecuacion(ineq_input):
+    try:
+        ineq_expr = sp.sympify(ineq_input)
+        soluciones = sp.solve_univariate_inequality(ineq_expr, x)
+        pasos = f"**Paso 1:** Resolviendo la inecuación {ineq_input}. Soluciones: {soluciones}"
+        return soluciones, pasos
+    except:
+        return None, "Error al resolver la inecuación."
+
+# Función para calcular límites
+def calcular_limite(expr, punto_val):
+    try:
+        limite = sp.limit(expr, x, punto_val)
+        explicacion = f"**Paso 1:** Aplicamos el límite de f(x) = {expr} cuando x tiende a {punto_val}. Resultado: {limite}"
+        return limite, explicacion
+    except:
+        return None, "Error al calcular el límite."
 
 def main():
     menu = st.sidebar.selectbox("Selecciona una herramienta:", [
