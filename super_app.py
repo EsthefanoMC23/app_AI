@@ -16,6 +16,37 @@ def parse_function(expr_input):
     except Exception as e:
         return None  # Retorna None si ocurre un error
 
+# Función para generar la gráfica interactiva
+def create_interactive_plot():
+    # Datos de ejemplo: una función seno
+    x_vals = np.linspace(0, 10, 500)
+    y_vals = np.sin(x_vals)
+
+    # Crear la figura con Plotly
+    fig = go.Figure()
+
+    # Agregar traza
+    fig.add_trace(go.Scatter(x=x_vals, y=y_vals, mode='lines', name='Seno'))
+
+    # Configuración del layout con range slider solo en el eje X
+    fig.update_layout(
+        title='Gráfico Interactivo de Seno',
+        xaxis=dict(
+            title='Eje X',
+            rangeslider=dict(visible=True),  # Habilita el control deslizante
+            showgrid=True,
+            showline=True
+        ),
+        yaxis=dict(
+            title='Eje Y',
+            showgrid=True,
+            showline=True
+        ),
+        template='plotly_dark'  # Estilo visual de la gráfica
+    )
+
+    return fig
+
 # Función para graficar una función con raíces, extremos e intersección
 def graficar_funcion(expr, inversa_expr=None):
     f = sp.lambdify(x, expr, modules=["numpy"])
@@ -51,59 +82,6 @@ def graficar_funcion(expr, inversa_expr=None):
             ))
         except Exception as e:
             st.error("❌ No se pudo graficar la inversa.")
-
-    # Identificar y marcar RAÍCES (cuando f(x) = 0)
-    try:
-        raices = sp.solve(expr, x)
-        raices_reales = [r.evalf() for r in raices if r.is_real]
-        for r in raices_reales:
-            y_val = 0
-            fig.add_trace(go.Scatter(
-                x=[float(r)], 
-                y=[y_val], 
-                mode='markers', 
-                name='Raíz', 
-                marker=dict(color='green', size=10, symbol='x'),
-                hovertemplate="🔵 Tipo: Raíz<br>x: %{x:.2f}<br>y: %{y:.2f}<extra></extra>"
-            ))
-    except Exception as e:
-        pass  # Mejor no interrumpir todo el gráfico si falla
-
-    # Identificar y marcar EXTREMOS (cuando f'(x) = 0)
-    try:
-        derivada = sp.diff(expr, x)
-        criticos = sp.solve(derivada, x)
-        criticos_reales = [c.evalf() for c in criticos if c.is_real]
-        for c in criticos_reales:
-            try:
-                y_val = f(float(c))
-                fig.add_trace(go.Scatter(
-                    x=[float(c)], 
-                    y=[y_val], 
-                    mode='markers', 
-                    name='Extremo relativo', 
-                    marker=dict(color='orange', size=10, symbol='diamond'),
-                    hovertemplate="🟠 Tipo: Extremo relativo<br>x: %{x:.2f}<br>y: %{y:.2f}<extra></extra>"
-                ))
-            except Exception:
-                continue
-    except Exception as e:
-        pass
-
-    # Marcar intersección con eje Y (cuando x = 0)
-    try:
-        y_intersect = f(0)
-        if np.isfinite(y_intersect):
-            fig.add_trace(go.Scatter(
-                x=[0], 
-                y=[y_intersect], 
-                mode='markers', 
-                name='Intersección eje Y', 
-                marker=dict(color='black', size=10, symbol='circle'),
-                hovertemplate="⚫ Tipo: Intersección eje Y<br>x: %{x:.2f}<br>y: %{y:.2f}<extra></extra>"
-            ))
-    except Exception as e:
-        pass
 
     # Opcional: Configurar mejor el layout
     fig.update_layout(
@@ -205,6 +183,7 @@ def main():
         if expr_input:
             expr = parse_function(expr_input)
             graficar_funcion(expr)
+            st.plotly_chart(create_interactive_plot())  # Añadido gráfico interactivo
 
     elif menu == "Evaluar función":
         st.header("🧪 Evaluar función en un punto")
@@ -272,24 +251,6 @@ def main():
         st.subheader("📘 Demostración del límite como derivada")
         st.markdown("La derivada de una función en un punto se define como el límite de la pendiente de la recta secante cuando h tiende a 0:")
         st.latex(r"f'(a) = \lim_{h \to 0} \frac{f(a+h) - f(a)}{h}")
-        st.markdown("Esta fórmula representa la **pendiente de la recta tangente** en el punto $x = a$.")
-
-        st.subheader("🧮 Calculadora de Límites")
-        funcion_limite = st.text_input("Ingresa la función f(x):", value="(x**2 - 1)/(x - 1)")
-        punto_limite = st.text_input("¿A qué valor tiende x?:", value="1")
-
-        if funcion_limite and punto_limite:
-            expr = parse_function(funcion_limite)
-            try:
-                punto_val = float(punto_limite)
-                limite, explicacion = calcular_limite(expr, punto_val)
-                if limite is not None:
-                    st.success(f"Resultado del límite: {limite}")
-                    st.markdown(explicacion)
-                else:
-                    st.error(explicacion)
-            except ValueError:
-                st.error("El punto debe ser un número válido.")
 
 if __name__ == "__main__":
     main()
